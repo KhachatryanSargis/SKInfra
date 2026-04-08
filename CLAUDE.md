@@ -13,10 +13,11 @@ a single `Package.swift` — consumers import only the products they need.
 
 | Product | Purpose | Depends On |
 |---|---|---|
-| **SKCore** | Foundation protocols and utilities (DI, Storage, Logger, Namespace, Extensions) | Nothing |
+| **SKCore** | Foundation protocols and utilities (DI, Storage, Logger, Analytics, Namespace, Extensions) | Nothing |
 | **SKDI** | Dependency injection container implementation with scoped lifecycles | SKCore |
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | SKCore |
 | **SKStorage** | Image caching and SwiftData persistence implementations | SKCore |
+| **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | SKCore |
 
 ## Dependency Direction
 
@@ -25,11 +26,12 @@ SKCore (protocols — zero dependencies)
   ↑
   ├── SKDI (DI container implementation)
   ├── SKNavigation (Coordinator, Router, Route)
-  └── SKStorage (ImageCache, SwiftData)
+  ├── SKStorage (ImageCache, SwiftData)
+  └── SKAnalytics (CompositeAnalytics, SuperProperty, PrintAnalytics)
 ```
 
 All products depend only on SKCore. No cross-dependencies between SKDI,
-SKNavigation, and SKStorage.
+SKNavigation, SKStorage, and SKAnalytics.
 
 ## Consumer Usage
 
@@ -45,7 +47,8 @@ targets: [
         .product(name: "SKCore", package: "SKInfra"),
         .product(name: "SKDI", package: "SKInfra"),
         .product(name: "SKNavigation", package: "SKInfra"),
-        .product(name: "SKStorage", package: "SKInfra")
+        .product(name: "SKStorage", package: "SKInfra"),
+        .product(name: "SKAnalytics", package: "SKInfra")
     ])
 ]
 ```
@@ -281,6 +284,58 @@ public func save<V: Codable>(_ value: V, forKey key: StorageKey<V>) throws
 public func load<V: Codable>(forKey key: StorageKey<V>) throws -> V?
 public func delete<V: Codable>(forKey key: StorageKey<V>) throws
 ```
+
+### Analytics
+
+**AnalyticsProtocol**
+
+```swift
+public protocol AnalyticsProtocol: Sendable
+var isEnabled: Bool { get }
+func track(_ event: String, properties: AnalyticsProperties?)
+func identify(userId: String)
+func setUserProperties(_ properties: AnalyticsProperties)
+func screen(_ name: String, properties: AnalyticsProperties?)
+func reset()
+public extension AnalyticsProtocol
+func track(_ event: String)
+func screen(_ name: String)
+```
+
+**AnalyticsEvent**
+
+```swift
+public struct AnalyticsEvent: Sendable, Equatable
+public let name: String
+public let properties: AnalyticsProperties?
+public let timestamp: Date
+public init(name: String, properties: AnalyticsProperties? = nil, timestamp: Date = Date())
+public var description: String
+```
+
+**AnalyticsProperties**
+
+```swift
+public struct AnalyticsProperties: Sendable, Equatable
+public let values: [String: AnalyticsValue]
+public init(_ values: [String: AnalyticsValue] = [:])
+public subscript(key: String) -> AnalyticsValue?
+public var isEmpty: Bool
+public var count: Int
+public func merging(_ other: AnalyticsProperties) -> AnalyticsProperties
+```
+
+**AnalyticsValue**
+
+```swift
+public enum AnalyticsValue: Sendable, Equatable
+case string(String)
+case int(Int)
+case double(Double)
+case bool(Bool)
+case date(Date)
+```
+
 <!-- PUBLIC-API-END -->
 
 ## Public API Reference — SKNavigation
@@ -442,3 +497,48 @@ public struct TabCoordinatedView<C: TabCoordinator>: View
 public init(coordinator: C)
 ```
 <!-- PUBLIC-API-END-NAV -->
+
+## Public API Reference — SKAnalytics
+
+### Analytics Providers
+
+**PrintAnalyticsProvider**
+
+```swift
+public struct PrintAnalyticsProvider: AnalyticsProtocol
+public let isEnabled: Bool
+public init(isEnabled: Bool = true)
+public func track(_ event: String, properties: AnalyticsProperties?)
+public func identify(userId: String)
+public func setUserProperties(_ properties: AnalyticsProperties)
+public func screen(_ name: String, properties: AnalyticsProperties?)
+public func reset()
+```
+
+**CompositeAnalyticsProvider**
+
+```swift
+public struct CompositeAnalyticsProvider: AnalyticsProtocol
+public let isEnabled: Bool
+public init(providers: [any AnalyticsProtocol], isEnabled: Bool = true)
+public func track(_ event: String, properties: AnalyticsProperties?)
+public func identify(userId: String)
+public func setUserProperties(_ properties: AnalyticsProperties)
+public func screen(_ name: String, properties: AnalyticsProperties?)
+public func reset()
+```
+
+**SuperPropertyProvider**
+
+```swift
+public struct SuperPropertyProvider: AnalyticsProtocol, @unchecked Sendable
+public init(wrapping wrapped: any AnalyticsProtocol, initialProperties: AnalyticsProperties = [:])
+public func register(_ properties: AnalyticsProperties)
+public func clearSuperProperties()
+public func currentSuperProperties() -> AnalyticsProperties
+public func track(_ event: String, properties: AnalyticsProperties?)
+public func identify(userId: String)
+public func setUserProperties(_ properties: AnalyticsProperties)
+public func screen(_ name: String, properties: AnalyticsProperties?)
+public func reset()
+```

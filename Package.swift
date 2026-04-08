@@ -12,7 +12,8 @@ let package = Package(
         .library(name: "SKCore", targets: ["SKCore"]),
         .library(name: "SKDI", targets: ["SKDI"]),
         .library(name: "SKNavigation", targets: ["SKNavigation"]),
-        .library(name: "SKStorage", targets: ["SKStorage"])
+        .library(name: "SKStorage", targets: ["SKStorage"]),
+        .library(name: "SKAnalytics", targets: ["SKAnalytics"])
     ],
     targets: [
         // MARK: - SKCore
@@ -60,6 +61,18 @@ let package = Package(
             name: "SKStorageTests",
             dependencies: ["SKStorage"],
             path: "Tests/SKStorageTests"
+        ),
+
+        // MARK: - SKAnalytics
+        .target(
+            name: "SKAnalytics",
+            dependencies: ["SKCore"],
+            path: "Sources/SKAnalytics"
+        ),
+        .testTarget(
+            name: "SKAnalyticsTests",
+            dependencies: ["SKAnalytics"],
+            path: "Tests/SKAnalyticsTests"
         )
     ]
 )

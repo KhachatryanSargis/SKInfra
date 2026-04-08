@@ -8,7 +8,7 @@
 
 Reusable iOS and macOS infrastructure libraries. SKInfra is a monorepo that exposes multiple SPM products — import only what you need.
 
-> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**) and wires them at the Composition Root. SPM compiles only the products you declare.
+> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**, **SKAnalytics**) and wires them at the Composition Root. SPM compiles only the products you declare.
 
 ---
 
@@ -40,7 +40,8 @@ targets: [
         .product(name: "SKCore", package: "SKInfra"),
         .product(name: "SKDI", package: "SKInfra"),
         .product(name: "SKNavigation", package: "SKInfra"),
-        .product(name: "SKStorage", package: "SKInfra")
+        .product(name: "SKStorage", package: "SKInfra"),
+        .product(name: "SKAnalytics", package: "SKInfra")
     ])
 ]
 ```
@@ -51,10 +52,11 @@ targets: [
 
 | Product | Description | Key Types |
 |---------|-------------|-----------|
-| **SKCore** | Foundation protocols and utilities — DI, Storage, Logger, Namespace, Extensions | `DependencyContainerProtocol`, `StorageProtocol`, `LoggerProtocol`, `ImageCacheProtocol` |
+| **SKCore** | Foundation protocols and utilities — DI, Storage, Logger, Analytics, Namespace, Extensions | `DependencyContainerProtocol`, `StorageProtocol`, `LoggerProtocol`, `AnalyticsProtocol`, `ImageCacheProtocol` |
 | **SKDI** | Dependency injection container with scoped lifecycles | `FactoryDependencyContainer` |
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | `Coordinator`, `NavigationRouter`, `Route`, `TabRouter` |
 | **SKStorage** | Image caching (memory + disk) and SwiftData persistence | `ImageCacheCoordinator`, `SwiftDataRepository` |
+| **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | `CompositeAnalyticsProvider`, `SuperPropertyProvider`, `PrintAnalyticsProvider` |
 
 ### Dependency Graph
 
@@ -63,7 +65,8 @@ SKCore (protocols — zero dependencies)
   ↑
   ├── SKDI
   ├── SKNavigation
-  └── SKStorage
+  ├── SKStorage
+  └── SKAnalytics
 ```
 
 All products depend only on SKCore. No cross-dependencies.
@@ -133,6 +136,21 @@ logger.error("Connection failed: \(error)")
 | `OSLogLogger` | `os.Logger` | Production — Console.app, log stream |
 | `CompositeLogger` | N child loggers | Multi-destination forwarding |
 
+### Analytics
+
+Provider-agnostic analytics protocol for event tracking, user identification, and property management. Vendor SDKs (Mixpanel, Amplitude, Firebase, etc.) are wrapped at the application layer.
+
+```swift
+analytics.track("purchase_completed", properties: [
+    "item_id": "abc-123",
+    "price": 9.99,
+    "is_first_purchase": true
+])
+
+analytics.identify(userId: "user-42")
+analytics.screen("HomeScreen")
+```
+
 ### Namespace & Extensions
 
 All extensions live behind `.sk` to avoid collisions:
@@ -199,6 +217,32 @@ try await repo.insert(Item(name: "New"))
 
 ---
 
+## SKAnalytics
+
+Provider-agnostic analytics implementations for SKCore's `AnalyticsProtocol`. Compose multiple providers, attach persistent super properties, and swap backends without touching feature code.
+
+```swift
+// Compose providers — debug console + production backend
+let analytics = CompositeAnalyticsProvider(providers: [
+    PrintAnalyticsProvider(),
+    mixpanelProvider  // your AnalyticsProtocol wrapper
+])
+
+// Attach super properties to every event
+let tracked = SuperPropertyProvider(
+    wrapping: analytics,
+    initialProperties: ["app_version": "2.1.0", "platform": "iOS"]
+)
+```
+
+| Type | Description |
+|------|-------------|
+| `PrintAnalyticsProvider` | Debug console output (mirrors `PrintLogger`) |
+| `CompositeAnalyticsProvider` | Multi-provider fan-out (mirrors `CompositeLogger`) |
+| `SuperPropertyProvider` | Decorator that attaches persistent properties to every event |
+
+---
+
 ## Package Structure
 
 ```
@@ -206,11 +250,13 @@ SKInfra/
 ├── Package.swift
 ├── Sources/
 │   ├── SKCore/
+│   │   ├── Analytics/
 │   │   ├── DI/
 │   │   ├── Extensions/
 │   │   ├── Logger/
 │   │   ├── Namespace/
 │   │   └── Storage/
+│   ├── SKAnalytics/
 │   ├── SKDI/
 │   ├── SKNavigation/
 │   │   ├── Coordinator/
@@ -223,6 +269,7 @@ SKInfra/
 │       ├── ImageCache/
 │       └── SwiftData/
 └── Tests/
+    ├── SKAnalyticsTests/
     ├── SKCoreTests/
     ├── SKDITests/
     ├── SKNavigationTests/
