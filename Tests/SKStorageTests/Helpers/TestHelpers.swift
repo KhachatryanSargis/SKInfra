@@ -75,4 +75,3 @@ final class SpyLogger: LoggerProtocol, @unchecked Sendable {
         entries.filter { $0.level == level }
     }
 }
-

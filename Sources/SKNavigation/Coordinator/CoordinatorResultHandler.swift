@@ -38,7 +38,9 @@ public final class CoordinatorResultHandler<Output: Sendable> {
 
     deinit {
         if !hasResumed, continuation != nil {
-            logger.warning("CoordinatorResultHandler deallocated without resuming — auto-cancelling to prevent continuation leak.")
+            let msg = "CoordinatorResultHandler deallocated without resuming — "
+                + "auto-cancelling to prevent continuation leak."
+            logger.warning(msg)
             // Safety net: resume with .cancelled to prevent a permanently
             // suspended task. A CheckedContinuation that is never resumed
             // is a memory leak and will trap in debug builds.

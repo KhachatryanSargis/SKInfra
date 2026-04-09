@@ -63,7 +63,9 @@ public final class NavigationRouter<R: Route> {
         case .present(let route, let style):
             switch style {
             case .push:
-                logger.warning("present(_:style: .push) converts to a push operation. Use .push(\(String(describing: route))) directly for clarity.")
+                let msg = "present(_:style: .push) converts to a push operation. "
+                    + "Use .push(\(String(describing: route))) directly for clarity."
+                logger.warning(msg)
                 path.append(route)
             case .sheet(let configuration):
                 currentSheetConfiguration = configuration

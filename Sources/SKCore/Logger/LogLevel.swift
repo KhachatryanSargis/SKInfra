@@ -17,27 +17,27 @@ import Foundation
 public enum LogLevel: Int, Sendable, Comparable, CaseIterable, CustomStringConvertible {
     /// Verbose diagnostic information. Disabled in production.
     case debug = 0
-    
+
     /// General informational messages about app flow.
     case info = 1
-    
+
     /// Potentially problematic situations that aren't failures.
     case warning = 2
-    
+
     /// Recoverable errors that need attention.
     case error = 3
-    
+
     /// Critical failures that may cause data loss or crashes.
     case fatal = 4
-    
+
     // MARK: - Comparable
-    
-    public static func < (lhs: LogLevel, rhs: LogLevel) -> Bool {
+
+    public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
-    
+
     // MARK: - CustomStringConvertible
-    
+
     public var description: String {
         switch self {
         case .debug:   return "DEBUG"
@@ -47,7 +47,7 @@ public enum LogLevel: Int, Sendable, Comparable, CaseIterable, CustomStringConve
         case .fatal:   return "FATAL"
         }
     }
-    
+
     /// Emoji prefix for human-readable console output.
     public var symbol: String {
         switch self {

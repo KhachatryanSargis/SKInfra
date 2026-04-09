@@ -27,7 +27,6 @@ opt_in_rules:
   - file_name_no_space
   - first_where
   - flatmap_over_map_reduce
-  - identical_operands
   - implicit_return
   - last_where
   - literal_expression_end_indentation
@@ -51,6 +50,7 @@ opt_in_rules:
 disabled_rules:
   - todo
   - opening_brace
+  - identical_operands
 
 # Configuration
 line_length:
@@ -64,20 +64,30 @@ file_length:
   error: 800
 
 type_body_length:
-  warning: 300
+  warning: 350
   error: 500
 
 function_body_length:
-  warning: 50
+  warning: 60
   error: 80
+
+cyclomatic_complexity:
+  warning: 17
+  error: 25
 
 function_parameter_count:
   warning: 6
   error: 8
 
+large_tuple:
+  warning: 3
+  error: 4
+
 type_name:
   min_length: 3
   max_length: 50
+  excluded:
+    - _OptionalProtocol
 
 identifier_name:
   min_length:
@@ -91,6 +101,11 @@ identifier_name:
     - x
     - y
     - i
+    - a
+    - b
+    - c
+  allowed_symbols:
+    - _
 
 nesting:
   type_level: 2

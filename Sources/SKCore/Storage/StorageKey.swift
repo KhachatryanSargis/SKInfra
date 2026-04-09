@@ -23,7 +23,7 @@ import Foundation
 public struct StorageKey<Value: Codable>: Sendable, Hashable {
     /// The raw string identifier used for persistence.
     public let rawValue: String
-    
+
     /// Creates a type-safe storage key.
     /// - Parameter rawValue: The underlying key string used for storage lookup.
     public init(_ rawValue: String) {

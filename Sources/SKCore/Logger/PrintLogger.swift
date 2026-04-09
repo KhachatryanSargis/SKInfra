@@ -25,14 +25,14 @@ import Foundation
 /// ```
 public struct PrintLogger: LoggerProtocol {
     public let minimumLevel: LogLevel
-    
+
     /// Creates a print logger that emits messages at or above the given level.
     ///
     /// - Parameter minimumLevel: The minimum severity to emit. Defaults to `.debug`.
     public init(minimumLevel: LogLevel = .debug) {
         self.minimumLevel = minimumLevel
     }
-    
+
     public func log(
         _ message: @autoclosure () -> String,
         level: LogLevel,

@@ -44,7 +44,7 @@ public protocol LoggerProtocol: Sendable {
     /// Messages below this level are silently discarded.
     /// Default implementations check this before evaluating the message closure.
     var minimumLevel: LogLevel { get }
-    
+
     /// Core logging method. All convenience methods funnel through here.
     ///
     /// - Parameters:
@@ -86,7 +86,7 @@ public extension LoggerProtocol {
     ) {
         log(message(), level: .debug, file: file, function: function, line: line)
     }
-    
+
     /// Log an info-level message.
     func info(
         _ message: @autoclosure () -> String,
@@ -96,7 +96,7 @@ public extension LoggerProtocol {
     ) {
         log(message(), level: .info, file: file, function: function, line: line)
     }
-    
+
     /// Log a warning-level message.
     func warning(
         _ message: @autoclosure () -> String,
@@ -106,7 +106,7 @@ public extension LoggerProtocol {
     ) {
         log(message(), level: .warning, file: file, function: function, line: line)
     }
-    
+
     /// Log an error-level message.
     func error(
         _ message: @autoclosure () -> String,
@@ -116,7 +116,7 @@ public extension LoggerProtocol {
     ) {
         log(message(), level: .error, file: file, function: function, line: line)
     }
-    
+
     /// Log a fatal-level message.
     func fatal(
         _ message: @autoclosure () -> String,

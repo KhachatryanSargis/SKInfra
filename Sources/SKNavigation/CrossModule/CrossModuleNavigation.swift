@@ -75,7 +75,7 @@ public struct CrossModuleDestination<Target: Hashable & Sendable>: Sendable {
 public protocol CrossModuleNavigationHandler: AnyObject {
 
     /// The type that identifies modules in your app.
-    associatedtype Target: Hashable & Sendable
+    associatedtype Target: Hashable, Sendable
 
     /// Navigates to a cross-module destination.
     ///

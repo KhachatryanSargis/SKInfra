@@ -51,8 +51,8 @@ public struct AnalyticsProperties: Sendable, Equatable {
     ///
     /// - Parameter other: The properties to merge in.
     /// - Returns: A new instance containing all key-value pairs.
-    public func merging(_ other: AnalyticsProperties) -> AnalyticsProperties {
-        AnalyticsProperties(values.merging(other.values) { _, new in new })
+    public func merging(_ other: Self) -> Self {
+        Self(values.merging(other.values) { _, new in new })
     }
 }
 

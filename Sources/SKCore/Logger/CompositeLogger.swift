@@ -33,7 +33,7 @@ public struct CompositeLogger: LoggerProtocol {
     /// Messages below this level are guaranteed to be ignored by every child,
     /// so we skip the iteration entirely.
     public let minimumLevel: LogLevel
-    
+
     /// The child loggers, stored as existentials for heterogeneous collection.
     ///
     /// This is a deliberate use of `any LoggerProtocol` — we need a
@@ -41,7 +41,7 @@ public struct CompositeLogger: LoggerProtocol {
     /// The existential overhead is acceptable here because logging is not
     /// in a hot path.
     private let loggers: [any LoggerProtocol]
-    
+
     /// Creates a composite logger that forwards to all provided loggers.
     ///
     /// - Parameter loggers: The child loggers to forward messages to.
@@ -49,7 +49,7 @@ public struct CompositeLogger: LoggerProtocol {
         self.loggers = loggers
         self.minimumLevel = loggers.map(\.minimumLevel).min() ?? .debug
     }
-    
+
     public func log(
         _ message: @autoclosure () -> String,
         level: LogLevel,

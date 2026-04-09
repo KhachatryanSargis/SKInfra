@@ -33,7 +33,7 @@ import Foundation
 public struct SKWrapper<Base> {
     /// The wrapped value that namespaced methods operate on.
     public let base: Base
-    
+
     /// Creates a namespace wrapper around the given value.
     ///
     /// You typically don't call this directly — use the `.sk` accessor instead.

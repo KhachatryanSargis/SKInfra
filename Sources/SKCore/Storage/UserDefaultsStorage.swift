@@ -22,13 +22,13 @@ public struct UserDefaultsStorage: StorageProtocol {
     // UserDefaults is thread-safe per Apple documentation.
     // Marked `nonisolated(unsafe)` because UserDefaults does not formally
     // conform to Sendable, but Apple guarantees thread-safe access.
-    private nonisolated(unsafe) let defaults: UserDefaults
+    nonisolated(unsafe) private let defaults: UserDefaults
 
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
-    
+
     // MARK: - Init
-    
+
     /// Creates a `UserDefaultsStorage` instance.
     ///
     /// - Parameters:
@@ -44,9 +44,9 @@ public struct UserDefaultsStorage: StorageProtocol {
         self.encoder = encoder
         self.decoder = decoder
     }
-    
+
     // MARK: - StorageProtocol
-    
+
     public func save<V: Codable>(_ value: V, forKey key: StorageKey<V>) throws {
         let data: Data
         do {
@@ -57,15 +57,15 @@ public struct UserDefaultsStorage: StorageProtocol {
                 underlying: error.localizedDescription
             )
         }
-        
+
         defaults.set(data, forKey: key.rawValue)
     }
-    
+
     public func load<V: Codable>(forKey key: StorageKey<V>) throws -> V? {
         guard let data = defaults.data(forKey: key.rawValue) else {
             return nil
         }
-        
+
         do {
             return try decoder.decode(V.self, from: data)
         } catch {
@@ -75,7 +75,7 @@ public struct UserDefaultsStorage: StorageProtocol {
             )
         }
     }
-    
+
     public func delete<V: Codable>(forKey key: StorageKey<V>) throws {
         defaults.removeObject(forKey: key.rawValue)
     }

@@ -32,10 +32,10 @@ import Foundation
 public protocol SKNamespaceProvider {
     /// The concrete type being wrapped.
     associatedtype NamespaceBase
-    
+
     /// Instance accessor for namespaced extensions.
     var sk: SKWrapper<NamespaceBase> { get }
-    
+
     /// Static/type-level accessor for namespaced extensions.
     static var sk: SKWrapper<NamespaceBase>.Type { get }
 }
@@ -48,7 +48,7 @@ extension SKNamespaceProvider {
     public var sk: SKWrapper<Self> {
         SKWrapper(self)
     }
-    
+
     /// Returns the `SKWrapper` metatype for this type, providing access
     /// to namespaced static methods.
     public static var sk: SKWrapper<Self>.Type {

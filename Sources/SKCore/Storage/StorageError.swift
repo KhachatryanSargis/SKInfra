@@ -7,16 +7,16 @@ import Foundation
 public enum StorageError: Error, Equatable, Sendable {
     /// The value could not be encoded for storage.
     case encodingFailed(key: String, underlying: String)
-    
+
     /// The stored data could not be decoded to the expected type.
     case decodingFailed(key: String, underlying: String)
-    
+
     /// The save operation failed at the persistence layer.
     case saveFailed(key: String, underlying: String)
-    
+
     /// The load operation failed at the persistence layer.
     case loadFailed(key: String, underlying: String)
-    
+
     /// The delete operation failed at the persistence layer.
     case deleteFailed(key: String, underlying: String)
 }

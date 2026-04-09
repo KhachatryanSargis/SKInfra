@@ -17,18 +17,18 @@ public protocol KeychainOperations: Sendable {
 /// Production implementation using the Security framework.
 public struct SystemKeychainOperations: KeychainOperations, Sendable {
     public init() {}
-    
+
     public func add(_ query: CFDictionary) -> OSStatus {
         SecItemAdd(query, nil)
     }
-    
+
     public func copyMatching(
         _ query: CFDictionary,
         _ result: UnsafeMutablePointer<CFTypeRef?>?
     ) -> OSStatus {
         SecItemCopyMatching(query, result)
     }
-    
+
     public func delete(_ query: CFDictionary) -> OSStatus {
         SecItemDelete(query)
     }
@@ -54,14 +54,14 @@ public struct SystemKeychainOperations: KeychainOperations, Sendable {
 /// making them available in the background after the first device unlock.
 public struct KeychainStorage: StorageProtocol {
     // MARK: - Dependencies
-    
+
     private let service: String
     private let keychain: KeychainOperations
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
-    
+
     // MARK: - Init
-    
+
     /// Creates a `KeychainStorage` instance.
     ///
     /// - Parameters:
@@ -80,9 +80,9 @@ public struct KeychainStorage: StorageProtocol {
         self.encoder = encoder
         self.decoder = decoder
     }
-    
+
     // MARK: - StorageProtocol
-    
+
     public func save<V: Codable>(_ value: V, forKey key: StorageKey<V>) throws {
         let data: Data
         do {
@@ -93,10 +93,10 @@ public struct KeychainStorage: StorageProtocol {
                 underlying: error.localizedDescription
             )
         }
-        
+
         // Remove existing item first to avoid errSecDuplicateItem
         try? delete(forKey: key)
-        
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -104,7 +104,7 @@ public struct KeychainStorage: StorageProtocol {
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
-        
+
         let status = keychain.add(query as CFDictionary)
         guard status == errSecSuccess else {
             throw StorageError.saveFailed(
@@ -113,7 +113,7 @@ public struct KeychainStorage: StorageProtocol {
             )
         }
     }
-    
+
     public func load<V: Codable>(forKey key: StorageKey<V>) throws -> V? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -122,21 +122,21 @@ public struct KeychainStorage: StorageProtocol {
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
-        
+
         var result: CFTypeRef?
         let status = keychain.copyMatching(query as CFDictionary, &result)
-        
+
         if status == errSecItemNotFound {
             return nil
         }
-        
+
         guard status == errSecSuccess, let data = result as? Data else {
             throw StorageError.loadFailed(
                 key: key.rawValue,
                 underlying: "OSStatus \(status)"
             )
         }
-        
+
         do {
             return try decoder.decode(V.self, from: data)
         } catch {
@@ -146,14 +146,14 @@ public struct KeychainStorage: StorageProtocol {
             )
         }
     }
-    
+
     public func delete<V: Codable>(forKey key: StorageKey<V>) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key.rawValue
         ]
-        
+
         let status = keychain.delete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw StorageError.deleteFailed(

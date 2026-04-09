@@ -45,10 +45,10 @@ public struct SheetConfiguration: Sendable, Equatable {
     }
 
     /// Sensible defaults: large detent, automatic drag indicator.
-    public static let `default` = SheetConfiguration()
+    public static let `default` = Self()
 
     /// Bottom sheet configuration: medium + large detents with visible drag indicator.
-    public static let bottomSheet = SheetConfiguration(
+    public static let bottomSheet = Self(
         detents: [.medium, .large],
         dragIndicatorVisibility: .visible
     )

@@ -4,9 +4,9 @@ import Foundation
 
 @Suite("LogEntry")
 struct LogEntryTests {
-    
+
     // MARK: - Initialization
-    
+
     @Test("Stores all provided values")
     func initStoresValues() {
         let date = Date()
@@ -18,7 +18,7 @@ struct LogEntryTests {
             line: 42,
             timestamp: date
         )
-        
+
         #expect(entry.message == "test")
         #expect(entry.level == .info)
         #expect(entry.file == "/path/to/File.swift")
@@ -26,7 +26,7 @@ struct LogEntryTests {
         #expect(entry.line == 42)
         #expect(entry.timestamp == date)
     }
-    
+
     @Test("Default timestamp is approximately now")
     func defaultTimestamp() {
         let before = Date()
@@ -38,33 +38,33 @@ struct LogEntryTests {
             line: #line
         )
         let after = Date()
-        
+
         #expect(entry.timestamp >= before)
         #expect(entry.timestamp <= after)
     }
-    
+
     // MARK: - Equatable
-    
+
     @Test("Entries with same values are equal")
     func equatable() {
         let date = Date()
         let entry1 = LogEntry(message: "a", level: .error, file: "f", function: "g", line: 1, timestamp: date)
         let entry2 = LogEntry(message: "a", level: .error, file: "f", function: "g", line: 1, timestamp: date)
-        
+
         #expect(entry1 == entry2)
     }
-    
+
     @Test("Entries with different messages are not equal")
     func notEqualDifferentMessage() {
         let date = Date()
         let entry1 = LogEntry(message: "a", level: .error, file: "f", function: "g", line: 1, timestamp: date)
         let entry2 = LogEntry(message: "b", level: .error, file: "f", function: "g", line: 1, timestamp: date)
-        
+
         #expect(entry1 != entry2)
     }
-    
+
     // MARK: - Description
-    
+
     @Test("Description includes level symbol, filename, line, function, and message")
     func description() {
         let entry = LogEntry(
@@ -74,7 +74,7 @@ struct LogEntryTests {
             function: "start()",
             line: 99
         )
-        
+
         let desc = entry.description
         #expect(desc.contains("⚠️"))
         #expect(desc.contains("[WARNING]"))
@@ -83,7 +83,7 @@ struct LogEntryTests {
         #expect(desc.contains("start()"))
         #expect(desc.contains("hello"))
     }
-    
+
     @Test("Description uses only the filename, not the full path")
     func descriptionUsesFilenameOnly() {
         let entry = LogEntry(
@@ -93,7 +93,7 @@ struct LogEntryTests {
             function: "f()",
             line: 1
         )
-        
+
         let desc = entry.description
         #expect(!desc.contains("/very/long"))
         #expect(desc.contains("MyFile.swift"))

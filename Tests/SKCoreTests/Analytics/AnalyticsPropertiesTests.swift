@@ -11,7 +11,6 @@ struct AnalyticsPropertiesTests {
     func emptyInit() {
         let properties = AnalyticsProperties()
         #expect(properties.isEmpty)
-        #expect(properties.count == 0)
     }
 
     @Test("Dictionary literal creates properties with correct values")

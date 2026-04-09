@@ -47,14 +47,14 @@ public protocol StorageProtocol: Sendable {
     ///   - key: A type-safe key that binds to the value type.
     /// - Throws: A ``StorageError`` if encoding or persistence fails.
     func save<V: Codable>(_ value: V, forKey key: StorageKey<V>) throws
-    
+
     /// Retrieves a value for the given key.
     ///
     /// - Parameter key: A type-safe key that determines the return type.
     /// - Returns: The decoded value, or `nil` if the key doesn't exist.
     /// - Throws: A ``StorageError`` if decoding fails.
     func load<V: Codable>(forKey key: StorageKey<V>) throws -> V?
-    
+
     /// Removes the value associated with the given key.
     ///
     /// No error is thrown if the key doesn't exist.
@@ -62,7 +62,7 @@ public protocol StorageProtocol: Sendable {
     /// - Parameter key: The key to remove.
     /// - Throws: A ``StorageError`` if the deletion fails.
     func delete<V: Codable>(forKey key: StorageKey<V>) throws
-    
+
     /// Returns whether a value exists for the given key.
     ///
     /// Default implementation calls `load` and checks for `nil`.

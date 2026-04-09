@@ -7,7 +7,7 @@ extension String: SKNamespaceProvider {}
 // MARK: - Namespaced String Extensions
 
 extension SKWrapper where Base == String {
-    
+
     /// Returns the string with its first character uppercased.
     ///
     /// Unlike `capitalized` (which capitalizes every word), this only
@@ -22,7 +22,7 @@ extension SKWrapper where Base == String {
         guard let first = base.first else { return base }
         return first.uppercased() + base.dropFirst()
     }
-    
+
     /// Returns the string with leading and trailing whitespace and
     /// newlines removed, or `nil` if the result is empty.
     ///
@@ -38,7 +38,7 @@ extension SKWrapper where Base == String {
         let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
-    
+
     /// Truncates the string, keeping at most `maxCharacters` from the original
     /// and appending a suffix (default `"…"`) if truncation occurs.
     ///
@@ -57,7 +57,7 @@ extension SKWrapper where Base == String {
         guard base.count > maxCharacters else { return base }
         return String(base.prefix(maxCharacters)) + suffix
     }
-    
+
     /// Returns `true` if the string contains only alphanumeric characters.
     ///
     /// Returns `false` for empty strings.
