@@ -13,11 +13,12 @@ a single `Package.swift` — consumers import only the products they need.
 
 | Product | Purpose | Depends On |
 |---|---|---|
-| **SKCore** | Foundation protocols and utilities (DI, Storage, Logger, Analytics, Namespace, Extensions) | Nothing |
+| **SKCore** | Foundation protocols and utilities (DI, Storage, Logger, Analytics, Clock, Namespace, Extensions) | Nothing |
 | **SKDI** | Dependency injection container implementation with scoped lifecycles | SKCore |
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | SKCore |
 | **SKStorage** | Image caching and SwiftData persistence implementations | SKCore |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | SKCore |
+| **SKInfraTesting** | Public mocks/doubles for every SKCore protocol (test targets only) | SKCore |
 
 ## Dependency Direction
 
@@ -27,11 +28,14 @@ SKCore (protocols — zero dependencies)
   ├── SKDI (DI container implementation)
   ├── SKNavigation (Coordinator, Router, Route)
   ├── SKStorage (ImageCache, SwiftData)
-  └── SKAnalytics (CompositeAnalytics, SuperProperty, PrintAnalytics)
+  ├── SKAnalytics (CompositeAnalytics, SuperProperty, PrintAnalytics)
+  └── SKInfraTesting (MockClock, MockLogger, MockDependencyContainer, …)
+                        ↑
+                        link only from test targets
 ```
 
 All products depend only on SKCore. No cross-dependencies between SKDI,
-SKNavigation, SKStorage, and SKAnalytics.
+SKNavigation, SKStorage, SKAnalytics, and SKInfraTesting.
 
 ## Consumer Usage
 
@@ -104,6 +108,43 @@ case cached
 case shared
 case graph
 public var description: String
+```
+
+
+### Clock
+
+**ClockProtocol**
+
+```swift
+public protocol ClockProtocol: Sendable
+func now() -> Date
+func uptime() -> Duration
+func sleep(for duration: Duration) async throws
+@discardableResult
+func schedule(after delay: Duration, _ work: @escaping @Sendable () async -> Void) -> ScheduledHandle
+public extension ClockProtocol
+func measure<T>(_ work: () async throws -> T) async rethrows -> (result: T, elapsed: Duration)
+```
+
+**ScheduledHandle**
+
+```swift
+public final class ScheduledHandle: Sendable
+public init(isCancelled: @escaping @Sendable () -> Bool, cancel: @escaping @Sendable () -> Void)
+public var isCancelled: Bool
+public func cancel()
+```
+
+**SystemClock**
+
+```swift
+public struct SystemClock: ClockProtocol
+public init()
+public func now() -> Date
+public func uptime() -> Duration
+public func sleep(for duration: Duration) async throws
+@discardableResult
+public func schedule(after delay: Duration, _ work: @escaping @Sendable () async -> Void) -> ScheduledHandle
 ```
 
 
@@ -540,5 +581,79 @@ public func track(_ event: String, properties: AnalyticsProperties?)
 public func identify(userId: String)
 public func setUserProperties(_ properties: AnalyticsProperties)
 public func screen(_ name: String, properties: AnalyticsProperties?)
+public func reset()
+```
+
+## Public API Reference — SKInfraTesting
+
+> Test-only mocks. Link only from test targets.
+
+**MockClock**
+
+```swift
+public final class MockClock: ClockProtocol, @unchecked Sendable
+public init(startDate: Date = Date(timeIntervalSince1970: 0), startUptime: Duration = .zero)
+public func now() -> Date
+public func uptime() -> Duration
+public func sleep(for duration: Duration) async throws
+@discardableResult
+public func schedule(after delay: Duration, _ work: @escaping @Sendable () async -> Void) -> ScheduledHandle
+public func advance(by duration: Duration) async
+public func set(now: Date)
+public var hasPendingWork: Bool
+```
+
+**MockLogger**
+
+```swift
+public final class MockLogger: LoggerProtocol, @unchecked Sendable
+public let minimumLevel: LogLevel
+public private(set) var entries: [LogEntry]
+public init(minimumLevel: LogLevel = .debug)
+public func log(...)
+public func reset()
+public func entries(at level: LogLevel) -> [LogEntry]
+```
+
+**MockDependencyContainer**
+
+```swift
+public final class MockDependencyContainer: DependencyContainerProtocol, @unchecked Sendable
+public struct RegisterCall: Equatable, Sendable
+public struct ResolveCall: Equatable, Sendable
+public struct ParameterResolveCall: Equatable, Sendable
+public private(set) var registerCalls: [RegisterCall]
+public private(set) var parameterRegisterCalls: [RegisterCall]
+public private(set) var resolveCalls: [ResolveCall]
+public private(set) var parameterResolveCalls: [ParameterResolveCall]
+public private(set) var resetCalls: [DependencyScope?]
+public init()
+public func stub<V>(_ type: V.Type, name: String? = nil, value: V)
+```
+
+**MockAnalyticsProvider**
+
+```swift
+public final class MockAnalyticsProvider: AnalyticsProtocol, @unchecked Sendable
+public let isEnabled: Bool
+public private(set) var trackedEvents: [AnalyticsEvent]
+public private(set) var screenEvents: [AnalyticsEvent]
+public private(set) var identifiedUserIds: [String]
+public private(set) var userProperties: [AnalyticsProperties]
+public private(set) var resetCount: Int
+public init(isEnabled: Bool = true)
+public func clear()
+```
+
+**MockKeychainOperations**
+
+```swift
+public final class MockKeychainOperations: KeychainOperations, @unchecked Sendable
+public private(set) var addCallCount: Int
+public private(set) var deleteCallCount: Int
+public var addOverrideStatus: OSStatus?
+public var copyOverrideStatus: OSStatus?
+public var deleteOverrideStatus: OSStatus?
+public init()
 public func reset()
 ```

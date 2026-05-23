@@ -188,13 +188,14 @@ public final class MockClock: ClockProtocol, @unchecked Sendable {
             // to cancel?", so absence means "no, but no longer cancellable".
             // We report `isCancelled` only when the entry is still present
             // and marked.
-            pending.first(where: { $0.id == id })?.isCancelled ?? false
+            pending.first { $0.id == id }?.isCancelled ?? false
         }
     }
 
     private func cancel(id: UInt64, throwing: Bool) {
         let continuation: CheckedContinuation<Void, Error>? = lock.withLock {
-            guard let item = pending.first(where: { $0.id == id }) else {
+            let match = pending.first { $0.id == id }
+            guard let item = match else {
                 return nil
             }
             item.isCancelled = true

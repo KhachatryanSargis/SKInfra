@@ -52,11 +52,12 @@ targets: [
 
 | Product | Description | Key Types |
 |---------|-------------|-----------|
-| **SKCore** | Foundation protocols and utilities — DI, Storage, Logger, Analytics, Namespace, Extensions | `DependencyContainerProtocol`, `StorageProtocol`, `LoggerProtocol`, `AnalyticsProtocol`, `ImageCacheProtocol` |
+| **SKCore** | Foundation protocols and utilities — DI, Storage, Logger, Analytics, Clock, Namespace, Extensions | `DependencyContainerProtocol`, `StorageProtocol`, `LoggerProtocol`, `AnalyticsProtocol`, `ClockProtocol`, `ImageCacheProtocol` |
 | **SKDI** | Dependency injection container with scoped lifecycles | `FactoryDependencyContainer` |
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | `Coordinator`, `NavigationRouter`, `Route`, `TabRouter` |
 | **SKStorage** | Image caching (memory + disk) and SwiftData persistence | `ImageCacheCoordinator`, `SwiftDataRepository` |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | `CompositeAnalyticsProvider`, `SuperPropertyProvider`, `PrintAnalyticsProvider` |
+| **SKInfraTesting** | Test-only mocks and doubles for every SKCore protocol | `MockClock`, `MockLogger`, `MockDependencyContainer`, `MockAnalyticsProvider`, `MockKeychainOperations` |
 
 ### Dependency Graph
 
@@ -66,7 +67,8 @@ SKCore (protocols — zero dependencies)
   ├── SKDI
   ├── SKNavigation
   ├── SKStorage
-  └── SKAnalytics
+  ├── SKAnalytics
+  └── SKInfraTesting  (link only from test targets)
 ```
 
 All products depend only on SKCore. No cross-dependencies.
@@ -150,6 +152,25 @@ analytics.track("purchase_completed", properties: [
 analytics.identify(userId: "user-42")
 analytics.screen("HomeScreen")
 ```
+
+### Clock
+
+Protocol-oriented abstraction over wall-clock and monotonic time. Feature code depends on `ClockProtocol` instead of `Date()` or `Task.sleep`, so tests can swap in `MockClock` from `SKInfraTesting` for fully deterministic virtual time.
+
+```swift
+let clock: some ClockProtocol = SystemClock()
+
+try await clock.sleep(for: .milliseconds(250))
+clock.schedule(after: .seconds(30)) {
+    await reminders.fire()
+}
+let (result, elapsed) = try await clock.measure { try await fetchPets() }
+```
+
+| Type | Backed By | Use Case |
+|------|-----------|----------|
+| `SystemClock` | `Date()`, `ProcessInfo.systemUptime`, `Task.sleep` | Production |
+| `MockClock` (in SKInfraTesting) | Virtual time, advanced by the test | Deterministic unit tests |
 
 ### Namespace & Extensions
 
@@ -243,6 +264,32 @@ let tracked = SuperPropertyProvider(
 
 ---
 
+## SKInfraTesting
+
+Public mocks and test doubles for every SKCore protocol. Link only from test targets — `SKInfraTesting` is intentionally **not** part of the production graph. Each mock either records calls (`MockLogger`, `MockAnalyticsProvider`, `MockDependencyContainer`) or stubs an underlying system in memory (`MockKeychainOperations`, `MockClock`).
+
+```swift
+import SKInfraTesting
+
+let clock = MockClock()
+let reminders = ReminderService(clock: clock)
+
+async let scheduled = reminders.scheduleIn(.seconds(60))
+await clock.advance(by: .seconds(60))
+let result = try await scheduled
+#expect(result == .fired)
+```
+
+| Mock | Replaces | Verifies |
+|------|----------|----------|
+| `MockClock` | `ClockProtocol` | Virtual time — `advance(by:)` and `set(now:)` drive everything |
+| `MockLogger` | `LoggerProtocol` | Recorded `LogEntry` list, filterable by level |
+| `MockDependencyContainer` | `DependencyContainerProtocol` | Register/resolve call records; stub-based resolution |
+| `MockAnalyticsProvider` | `AnalyticsProtocol` | Tracked events, screen events, identify calls, user properties |
+| `MockKeychainOperations` | `KeychainOperations` | In-memory keychain with overridable status codes |
+
+---
+
 ## Package Structure
 
 ```
@@ -251,6 +298,7 @@ SKInfra/
 ├── Sources/
 │   ├── SKCore/
 │   │   ├── Analytics/
+│   │   ├── Clock/
 │   │   ├── DI/
 │   │   ├── Extensions/
 │   │   ├── Logger/
@@ -265,13 +313,15 @@ SKInfra/
 │   │   ├── Route/
 │   │   ├── Router/
 │   │   └── View/
-│   └── SKStorage/
-│       ├── ImageCache/
-│       └── SwiftData/
+│   ├── SKStorage/
+│   │   ├── ImageCache/
+│   │   └── SwiftData/
+│   └── SKInfraTesting/
 └── Tests/
     ├── SKAnalyticsTests/
     ├── SKCoreTests/
     ├── SKDITests/
+    ├── SKInfraTestingTests/
     ├── SKNavigationTests/
     └── SKStorageTests/
 ```
