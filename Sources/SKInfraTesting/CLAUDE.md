@@ -14,6 +14,7 @@ SKInfraTesting/
 ├── MockLogger.swift              — Recording LoggerProtocol
 ├── MockDependencyContainer.swift — Stub-based DependencyContainerProtocol
 ├── MockAnalyticsProvider.swift   — Recording AnalyticsProtocol
+├── MockMonetizationService.swift — Explicit-state MonetizationProtocol with simulate… controls
 └── MockKeychainOperations.swift  — In-memory KeychainOperations
 ```
 

@@ -22,6 +22,7 @@ from a single `Package.swift` — consumers import only the products they need.
 | **SKStorage** | Image caching and SwiftData persistence implementations | SKCore |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | SKCore |
 | **SKAuth** | FirebaseAuth-backed `Auth` impl with Sign in with Apple | SKCore + FirebaseAuth |
+| **SKMonetization** | RevenueCat-backed `MonetizationProtocol` impl with offerings, purchases, and entitlements | SKCore + RevenueCat |
 | **SKInfraTesting** | Public mocks/doubles for every SKCore protocol (test targets only) | SKCore |
 
 ## Dependency Direction
@@ -34,13 +35,15 @@ SKCore (protocols — zero dependencies)
   ├── SKStorage (ImageCache, SwiftData)
   ├── SKAnalytics (CompositeAnalytics, SuperProperty, PrintAnalytics)
   ├── SKAuth (FirebaseAuthAdapter, SignInWithAppleNonce — links FirebaseAuth)
+  ├── SKMonetization (RevenueCatAdapter — links RevenueCat)
   └── SKInfraTesting (MockClock, MockLogger, MockDependencyContainer, …)
                         ↑
                         link only from test targets
 ```
 
 All products depend only on SKCore. No cross-dependencies between SKDI,
-SKNavigation, SKStorage, SKAnalytics, SKAuth, and SKInfraTesting.
+SKNavigation, SKStorage, SKAnalytics, SKAuth, SKMonetization, and
+SKInfraTesting.
 
 ## Consumer Usage
 
@@ -58,7 +61,8 @@ targets: [
         .product(name: "SKNavigation", package: "SKInfra"),
         .product(name: "SKStorage", package: "SKInfra"),
         .product(name: "SKAnalytics", package: "SKInfra"),
-        .product(name: "SKAuth", package: "SKInfra")
+        .product(name: "SKAuth", package: "SKInfra"),
+        .product(name: "SKMonetization", package: "SKInfra")
     ])
 ]
 ```
@@ -95,6 +99,7 @@ baseline context light.
 | SKStorage | [`Sources/SKStorage/CLAUDE.md`](Sources/SKStorage/CLAUDE.md) |
 | SKAnalytics | [`Sources/SKAnalytics/CLAUDE.md`](Sources/SKAnalytics/CLAUDE.md) |
 | SKAuth | [`Sources/SKAuth/CLAUDE.md`](Sources/SKAuth/CLAUDE.md) |
+| SKMonetization | [`Sources/SKMonetization/CLAUDE.md`](Sources/SKMonetization/CLAUDE.md) |
 | SKInfraTesting | [`Sources/SKInfraTesting/CLAUDE.md`](Sources/SKInfraTesting/CLAUDE.md) |
 
 Type signatures, doc-comments, and usage examples live in the source

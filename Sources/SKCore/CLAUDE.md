@@ -11,15 +11,17 @@ Each concern lives in its own folder under `Sources/SKCore/`:
 
 ```
 SKCore/
-├── Analytics/   — AnalyticsProtocol, AnalyticsEvent, AnalyticsProperties, AnalyticsValue
-├── Auth/        — Auth, AuthUser, AuthState, AuthCredential, AuthError
-├── Clock/       — ClockProtocol, ScheduledHandle, SystemClock
-├── DI/          — DependencyContainerProtocol, DependencyScope, DependencyResolutionError
-├── Extensions/  — Collection+SK, Optional+SK, String+SK (all behind `.sk` namespace)
-├── Logger/      — LoggerProtocol, LogLevel, LogEntry, PrintLogger, OSLogLogger, CompositeLogger
-├── Namespace/   — SKWrapper, SKNamespaceProvider (the `.sk` machinery)
-└── Storage/     — StorageProtocol, StorageKey, UserDefaultsStorage, KeychainStorage,
-                   ImageCacheProtocol, PersistentRepositoryProtocol
+├── Analytics/     — AnalyticsProtocol, AnalyticsEvent, AnalyticsProperties, AnalyticsValue
+├── Auth/          — Auth, AuthUser, AuthState, AuthCredential, AuthError
+├── Clock/         — ClockProtocol, ScheduledHandle, SystemClock
+├── DI/            — DependencyContainerProtocol, DependencyScope, DependencyResolutionError
+├── Extensions/    — Collection+SK, Optional+SK, String+SK (all behind `.sk` namespace)
+├── Logger/        — LoggerProtocol, LogLevel, LogEntry, PrintLogger, OSLogLogger, CompositeLogger
+├── Monetization/  — MonetizationProtocol, Offering, Package, Product, CustomerInfo,
+│                    Entitlement, PaywallExperiment, MonetizationError
+├── Namespace/     — SKWrapper, SKNamespaceProvider (the `.sk` machinery)
+└── Storage/       — StorageProtocol, StorageKey, UserDefaultsStorage, KeychainStorage,
+                     ImageCacheProtocol, PersistentRepositoryProtocol
 ```
 
 ## Gotchas
