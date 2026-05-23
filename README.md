@@ -8,7 +8,7 @@
 
 Reusable iOS and macOS infrastructure libraries. SKInfra is a monorepo that exposes multiple SPM products — import only what you need.
 
-> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**, **SKAnalytics**, **SKAuth**) and wires them at the Composition Root. SPM compiles only the products you declare.
+> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**, **SKAnalytics**, **SKAuth**, **SKMonetization**) and wires them at the Composition Root. SPM compiles only the products you declare.
 
 ---
 
@@ -42,7 +42,8 @@ targets: [
         .product(name: "SKNavigation", package: "SKInfra"),
         .product(name: "SKStorage", package: "SKInfra"),
         .product(name: "SKAnalytics", package: "SKInfra"),
-        .product(name: "SKAuth", package: "SKInfra")
+        .product(name: "SKAuth", package: "SKInfra"),
+        .product(name: "SKMonetization", package: "SKInfra")
     ])
 ]
 ```
@@ -59,7 +60,8 @@ targets: [
 | **SKStorage** | Image caching (memory + disk) and SwiftData persistence | `ImageCacheCoordinator`, `SwiftDataRepository` |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | `CompositeAnalyticsProvider`, `SuperPropertyProvider`, `PrintAnalyticsProvider` |
 | **SKAuth** | FirebaseAuth-backed `Auth` implementation with Sign in with Apple | `FirebaseAuthAdapter`, `SignInWithAppleNonce` |
-| **SKInfraTesting** | Test-only mocks and doubles for every SKCore protocol | `MockClock`, `MockLogger`, `MockDependencyContainer`, `MockAnalyticsProvider`, `MockKeychainOperations`, `MockAuth` |
+| **SKMonetization** | RevenueCat-backed `MonetizationProtocol` implementation with offerings, purchases, and entitlements | `RevenueCatAdapter`, `Offering`, `Package`, `CustomerInfo`, `Entitlement` |
+| **SKInfraTesting** | Test-only mocks and doubles for every SKCore protocol | `MockClock`, `MockLogger`, `MockDependencyContainer`, `MockAnalyticsProvider`, `MockKeychainOperations`, `MockAuth`, `MockMonetizationService` |
 
 ### Dependency Graph
 
@@ -70,7 +72,8 @@ SKCore (protocols — zero dependencies)
   ├── SKNavigation
   ├── SKStorage
   ├── SKAnalytics
-  ├── SKAuth         (also links FirebaseAuth)
+  ├── SKAuth          (also links FirebaseAuth)
+  ├── SKMonetization  (also links RevenueCat)
   └── SKInfraTesting  (link only from test targets)
 ```
 
@@ -202,6 +205,28 @@ try await auth.signIn(with: .apple(
 | `FirebaseAuthAdapter` (in SKAuth) | `FirebaseAuth.Auth` | Production |
 | `MockAuth` (in SKInfraTesting) | In-memory state with explicit `simulate…` controls | Deterministic unit tests |
 
+### Monetization
+
+Protocol-oriented in-app purchase, subscription management, and entitlement verification. Feature code depends on `MonetizationProtocol` instead of any specific SDK, so the RevenueCat wrapper in `SKMonetization` (or `MockMonetizationService` in tests) can be swapped at the Composition Root. Entitlements are carried on `CustomerInfo` — convenience methods on the protocol (`hasEntitlement(_:)`) gate features without forcing callers to dig through the dictionary.
+
+```swift
+let monetization: any MonetizationProtocol = container.resolve(MonetizationProtocol.self)
+
+for await offerings in monetization.offeringsStream {
+    presentPaywall(with: offerings)
+}
+
+let updated = try await monetization.purchase(package: selectedPackage)
+if monetization.hasEntitlement("premium") {
+    unlockPremiumFeatures()
+}
+```
+
+| Type | Backed By | Use Case |
+|------|-----------|----------|
+| `RevenueCatAdapter` (in SKMonetization) | `RevenueCat.Purchases` | Production |
+| `MockMonetizationService` (in SKInfraTesting) | In-memory state with explicit `simulate…` controls | Deterministic unit tests |
+
 ### Namespace & Extensions
 
 All extensions live behind `.sk` to avoid collisions:
@@ -328,6 +353,52 @@ try await auth.signIn(with: .apple(
 
 ---
 
+## SKMonetization
+
+RevenueCat-backed implementation of `MonetizationProtocol` with in-app purchases, subscription management, and entitlement verification. The adapter installs itself as the `PurchasesDelegate` so `customerInfoStream` reflects every renewal, expiration, and out-of-band change without extra plumbing. Paywall experiment variants surface through `Offering.metadata` (the `rc_experiment_id` / `rc_experiment_variant` keys RevenueCat writes), parsed by the `Offering.experiment` convenience.
+
+The consumer calls `Purchases.configure(withAPIKey:)` once at the Composition Root before constructing `RevenueCatAdapter`; the adapter assumes the default `Purchases` instance is already set up. Use the `init(purchases:)` overload for non-default configurations.
+
+```swift
+// Composition Root
+Purchases.configure(withAPIKey: "rc_api_key")
+container.register(MonetizationProtocol.self, scope: .singleton) {
+    RevenueCatAdapter()
+}
+
+// At the paywall
+let monetization: any MonetizationProtocol = container.resolve(MonetizationProtocol.self)
+
+for await offerings in monetization.offeringsStream {
+    let current = offerings.first { $0.id == "default" }
+    if let experiment = current?.experiment {
+        analytics.track("paywall_variant_shown", properties: [
+            "experiment": experiment.id,
+            "variant": experiment.variantIdentifier
+        ])
+    }
+    render(offerings: offerings)
+}
+
+// After the user taps "Subscribe"
+do {
+    try await monetization.purchase(package: selectedPackage)
+} catch MonetizationError.purchaseCancelled {
+    // Silent — user backed out of the sheet
+} catch {
+    showAlert(for: error)
+}
+```
+
+| Type | Description |
+|------|-------------|
+| `RevenueCatAdapter` | `MonetizationProtocol` impl wrapping `RevenueCat.Purchases` and the `PurchasesDelegate` callback lifecycle |
+| `Offering` / `Package` / `Product` | Provider-neutral projections used by paywall UI |
+| `CustomerInfo` / `Entitlement` | Snapshot of active entitlements, purchase history, and management URL |
+| `PaywallExperiment` | Lightweight value parsed from `Offering.metadata` for RC Experiments A/B testing |
+
+---
+
 ## SKInfraTesting
 
 Public mocks and test doubles for every SKCore protocol. Link only from test targets — `SKInfraTesting` is intentionally **not** part of the production graph. Each mock either records calls (`MockLogger`, `MockAnalyticsProvider`, `MockDependencyContainer`) or stubs an underlying system in memory (`MockKeychainOperations`, `MockClock`).
@@ -352,6 +423,7 @@ let result = try await scheduled
 | `MockAnalyticsProvider` | `AnalyticsProtocol` | Tracked events, screen events, identify calls, user properties |
 | `MockKeychainOperations` | `KeychainOperations` | In-memory keychain with overridable status codes |
 | `MockAuth` | `Auth` | Explicit `simulate…` state control, per-method `next…` result/error injection, call-count recording |
+| `MockMonetizationService` | `MonetizationProtocol` | Explicit `simulate…` offerings/customer-info control, per-method `next…` result injection, call-count recording |
 
 ---
 
@@ -368,11 +440,13 @@ SKInfra/
 │   │   ├── DI/
 │   │   ├── Extensions/
 │   │   ├── Logger/
+│   │   ├── Monetization/
 │   │   ├── Namespace/
 │   │   └── Storage/
 │   ├── SKAnalytics/
 │   ├── SKAuth/
 │   ├── SKDI/
+│   ├── SKMonetization/
 │   ├── SKNavigation/
 │   │   ├── Coordinator/
 │   │   ├── CrossModule/
@@ -390,6 +464,7 @@ SKInfra/
     ├── SKCoreTests/
     ├── SKDITests/
     ├── SKInfraTestingTests/
+    ├── SKMonetizationTests/
     ├── SKNavigationTests/
     └── SKStorageTests/
 ```
@@ -398,7 +473,12 @@ SKInfra/
 
 ## Dependencies
 
-**Opt-in runtime dependencies — SKCore stays clean.** SKCore, SKDI, SKNavigation, SKStorage, SKAnalytics, and SKInfraTesting link nothing third-party. The only product that pulls in an external SDK is **SKAuth**, which links the `FirebaseAuth` product from [firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk). Consumers that don't depend on SKAuth never see Firebase in their binary.
+**Opt-in runtime dependencies — SKCore stays clean.** SKCore, SKDI, SKNavigation, SKStorage, SKAnalytics, and SKInfraTesting link nothing third-party. Two products pull in external SDKs, scoped narrowly so consumers only see what they depend on:
+
+- **SKAuth** links the `FirebaseAuth` product from [firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk).
+- **SKMonetization** links the `RevenueCat` product from [purchases-ios](https://github.com/RevenueCat/purchases-ios).
+
+Consumers that don't depend on SKAuth never see Firebase in their binary; consumers that don't depend on SKMonetization never see RevenueCat.
 
 The package also declares one **build-time only** plugin dependency, [SwiftLintPlugins](https://github.com/SimplyDanny/SwiftLintPlugins), which attaches `SwiftLintBuildToolPlugin` to every target. It runs `swiftlint` on every `swift build` and surfaces violations as Xcode warnings — the in-editor feedback loop that mirrors what CI checks with `--strict`. It is not linked into the compiled binary and has no runtime cost; it shows up in consumers' `Package.resolved` purely as a resolved-plugin entry.
 
