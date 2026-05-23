@@ -12,6 +12,7 @@ Each concern lives in its own folder under `Sources/SKCore/`:
 ```
 SKCore/
 ├── Analytics/   — AnalyticsProtocol, AnalyticsEvent, AnalyticsProperties, AnalyticsValue
+├── Auth/        — Auth, AuthUser, AuthState, AuthCredential, AuthError
 ├── Clock/       — ClockProtocol, ScheduledHandle, SystemClock
 ├── DI/          — DependencyContainerProtocol, DependencyScope, DependencyResolutionError
 ├── Extensions/  — Collection+SK, Optional+SK, String+SK (all behind `.sk` namespace)

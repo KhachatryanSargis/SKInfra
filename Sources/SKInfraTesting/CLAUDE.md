@@ -9,6 +9,7 @@ production graph.
 ```
 SKInfraTesting/
 ├── SKInfraTesting.swift          — Module docstring (no code)
+├── MockAuth.swift                — Explicit-state Auth with simulate… controls
 ├── MockClock.swift               — Virtual-time ClockProtocol
 ├── MockLogger.swift              — Recording LoggerProtocol
 ├── MockDependencyContainer.swift — Stub-based DependencyContainerProtocol

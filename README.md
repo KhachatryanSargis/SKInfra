@@ -8,7 +8,7 @@
 
 Reusable iOS and macOS infrastructure libraries. SKInfra is a monorepo that exposes multiple SPM products — import only what you need.
 
-> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**, **SKAnalytics**) and wires them at the Composition Root. SPM compiles only the products you declare.
+> **Architecture:** Feature modules depend on **SKCore** (protocols). The app layer imports implementation packages (**SKDI**, **SKStorage**, **SKNavigation**, **SKAnalytics**, **SKAuth**) and wires them at the Composition Root. SPM compiles only the products you declare.
 
 ---
 
@@ -41,7 +41,8 @@ targets: [
         .product(name: "SKDI", package: "SKInfra"),
         .product(name: "SKNavigation", package: "SKInfra"),
         .product(name: "SKStorage", package: "SKInfra"),
-        .product(name: "SKAnalytics", package: "SKInfra")
+        .product(name: "SKAnalytics", package: "SKInfra"),
+        .product(name: "SKAuth", package: "SKInfra")
     ])
 ]
 ```
@@ -57,7 +58,8 @@ targets: [
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | `Coordinator`, `NavigationRouter`, `Route`, `TabRouter` |
 | **SKStorage** | Image caching (memory + disk) and SwiftData persistence | `ImageCacheCoordinator`, `SwiftDataRepository` |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | `CompositeAnalyticsProvider`, `SuperPropertyProvider`, `PrintAnalyticsProvider` |
-| **SKInfraTesting** | Test-only mocks and doubles for every SKCore protocol | `MockClock`, `MockLogger`, `MockDependencyContainer`, `MockAnalyticsProvider`, `MockKeychainOperations` |
+| **SKAuth** | FirebaseAuth-backed `Auth` implementation with Sign in with Apple | `FirebaseAuthAdapter`, `SignInWithAppleNonce` |
+| **SKInfraTesting** | Test-only mocks and doubles for every SKCore protocol | `MockClock`, `MockLogger`, `MockDependencyContainer`, `MockAnalyticsProvider`, `MockKeychainOperations`, `MockAuth` |
 
 ### Dependency Graph
 
@@ -68,10 +70,11 @@ SKCore (protocols — zero dependencies)
   ├── SKNavigation
   ├── SKStorage
   ├── SKAnalytics
+  ├── SKAuth         (also links FirebaseAuth)
   └── SKInfraTesting  (link only from test targets)
 ```
 
-All products depend only on SKCore. No cross-dependencies.
+All products depend only on SKCore. No cross-dependencies between impl products.
 
 ---
 
@@ -172,6 +175,33 @@ let (result, elapsed) = try await clock.measure { try await fetchPets() }
 | `SystemClock` | `Date()`, `ProcessInfo.systemUptime`, `Task.sleep` | Production |
 | `MockClock` (in SKInfraTesting) | Virtual time, advanced by the test | Deterministic unit tests |
 
+### Auth
+
+Protocol-oriented user identity, sign-in, sign-out, account deletion, and state observation. Feature code depends on `Auth` instead of any specific SDK, so the FirebaseAuth wrapper in `SKAuth` (or `MockAuth` in tests) can be swapped at the Composition Root.
+
+```swift
+let auth: any Auth = container.resolve(Auth.self)
+
+for await state in auth.stateChanges {
+    switch state {
+    case .unknown:           splash()
+    case .signedOut:         showSignIn()
+    case .signedIn(let user): showHome(for: user)
+    }
+}
+
+try await auth.signIn(with: .apple(
+    idToken: appleIDToken,
+    rawNonce: nonce.raw,
+    fullName: credential.fullName
+))
+```
+
+| Type | Backed By | Use Case |
+|------|-----------|----------|
+| `FirebaseAuthAdapter` (in SKAuth) | `FirebaseAuth.Auth` | Production |
+| `MockAuth` (in SKInfraTesting) | In-memory state with explicit `simulate…` controls | Deterministic unit tests |
+
 ### Namespace & Extensions
 
 All extensions live behind `.sk` to avoid collisions:
@@ -264,6 +294,40 @@ let tracked = SuperPropertyProvider(
 
 ---
 
+## SKAuth
+
+FirebaseAuth-backed implementation of `Auth` with Sign in with Apple. Sign-in providers handled today: Apple. Anonymous, password, and other federated providers can be added behind their own `AuthCredential` cases as needs arise.
+
+The consumer runs the `ASAuthorizationAppleIDProvider` UI flow (because the presentation context belongs to the app), generates the nonce via `SignInWithAppleNonce`, and hands the resulting identity token and raw nonce to `Auth.signIn(with:)`.
+
+```swift
+// Composition Root
+FirebaseApp.configure()
+container.register(Auth.self, scope: .singleton) {
+    FirebaseAuthAdapter()
+}
+
+// At the sign-in button
+let nonce = SignInWithAppleNonce.make()
+let request = ASAuthorizationAppleIDProvider().createRequest()
+request.requestedScopes = [.fullName, .email]
+request.nonce = nonce.hashed
+
+// ...inside ASAuthorizationControllerDelegate after success:
+try await auth.signIn(with: .apple(
+    idToken: idTokenString,
+    rawNonce: nonce.raw,
+    fullName: appleIDCredential.fullName
+))
+```
+
+| Type | Description |
+|------|-------------|
+| `FirebaseAuthAdapter` | `Auth` impl wrapping `FirebaseAuth.Auth` and its `addStateDidChangeListener` lifecycle |
+| `SignInWithAppleNonce` | Helper that pairs a cryptographically random raw nonce with its SHA-256 hash, so the consumer wires the right value into each leg of the Apple → Firebase exchange |
+
+---
+
 ## SKInfraTesting
 
 Public mocks and test doubles for every SKCore protocol. Link only from test targets — `SKInfraTesting` is intentionally **not** part of the production graph. Each mock either records calls (`MockLogger`, `MockAnalyticsProvider`, `MockDependencyContainer`) or stubs an underlying system in memory (`MockKeychainOperations`, `MockClock`).
@@ -287,6 +351,7 @@ let result = try await scheduled
 | `MockDependencyContainer` | `DependencyContainerProtocol` | Register/resolve call records; stub-based resolution |
 | `MockAnalyticsProvider` | `AnalyticsProtocol` | Tracked events, screen events, identify calls, user properties |
 | `MockKeychainOperations` | `KeychainOperations` | In-memory keychain with overridable status codes |
+| `MockAuth` | `Auth` | Explicit `simulate…` state control, per-method `next…` result/error injection, call-count recording |
 
 ---
 
@@ -298,6 +363,7 @@ SKInfra/
 ├── Sources/
 │   ├── SKCore/
 │   │   ├── Analytics/
+│   │   ├── Auth/
 │   │   ├── Clock/
 │   │   ├── DI/
 │   │   ├── Extensions/
@@ -305,6 +371,7 @@ SKInfra/
 │   │   ├── Namespace/
 │   │   └── Storage/
 │   ├── SKAnalytics/
+│   ├── SKAuth/
 │   ├── SKDI/
 │   ├── SKNavigation/
 │   │   ├── Coordinator/
@@ -319,6 +386,7 @@ SKInfra/
 │   └── SKInfraTesting/
 └── Tests/
     ├── SKAnalyticsTests/
+    ├── SKAuthTests/
     ├── SKCoreTests/
     ├── SKDITests/
     ├── SKInfraTestingTests/
@@ -330,9 +398,9 @@ SKInfra/
 
 ## Dependencies
 
-**Zero runtime dependencies.** Nothing SKInfra ships links against any third-party code, so consuming apps inherit no transitive runtime libraries.
+**Opt-in runtime dependencies — SKCore stays clean.** SKCore, SKDI, SKNavigation, SKStorage, SKAnalytics, and SKInfraTesting link nothing third-party. The only product that pulls in an external SDK is **SKAuth**, which links the `FirebaseAuth` product from [firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk). Consumers that don't depend on SKAuth never see Firebase in their binary.
 
-The package does declare one **build-time only** plugin dependency, [SwiftLintPlugins](https://github.com/SimplyDanny/SwiftLintPlugins), which attaches `SwiftLintBuildToolPlugin` to every target. It runs `swiftlint` on every `swift build` and surfaces violations as Xcode warnings — the in-editor feedback loop that mirrors what CI checks with `--strict`. It is not linked into the compiled binary and has no runtime cost; it shows up in consumers' `Package.resolved` purely as a resolved-plugin entry.
+The package also declares one **build-time only** plugin dependency, [SwiftLintPlugins](https://github.com/SimplyDanny/SwiftLintPlugins), which attaches `SwiftLintBuildToolPlugin` to every target. It runs `swiftlint` on every `swift build` and surfaces violations as Xcode warnings — the in-editor feedback loop that mirrors what CI checks with `--strict`. It is not linked into the compiled binary and has no runtime cost; it shows up in consumers' `Package.resolved` purely as a resolved-plugin entry.
 
 ---
 

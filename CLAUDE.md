@@ -5,9 +5,12 @@ Claude reads this file when working on files inside the SKInfra monorepo.
 ## Package Overview
 
 SKInfra is a monorepo containing reusable iOS/macOS infrastructure libraries.
-Cross-platform (iOS 17+ / macOS 14+), Swift 6.1, strict concurrency. Zero
-runtime dependencies. All packages are exposed as separate SPM products from
-a single `Package.swift` — consumers import only the products they need.
+Cross-platform (iOS 17+ / macOS 14+), Swift 6.1, strict concurrency. Opt-in
+runtime dependencies — SKCore and the SDK-free impl products link nothing
+third-party; only impl modules that wrap a vendor SDK (e.g. SKAuth →
+FirebaseAuth) carry that dep, and consumers pull it in only by depending
+on that specific product. All packages are exposed as separate SPM products
+from a single `Package.swift` — consumers import only the products they need.
 
 ## Products
 
@@ -18,6 +21,7 @@ a single `Package.swift` — consumers import only the products they need.
 | **SKNavigation** | Type-safe SwiftUI Coordinator-based navigation | SKCore |
 | **SKStorage** | Image caching and SwiftData persistence implementations | SKCore |
 | **SKAnalytics** | Provider-agnostic analytics tracking with composable providers | SKCore |
+| **SKAuth** | FirebaseAuth-backed `Auth` impl with Sign in with Apple | SKCore + FirebaseAuth |
 | **SKInfraTesting** | Public mocks/doubles for every SKCore protocol (test targets only) | SKCore |
 
 ## Dependency Direction
@@ -29,13 +33,14 @@ SKCore (protocols — zero dependencies)
   ├── SKNavigation (Coordinator, Router, Route)
   ├── SKStorage (ImageCache, SwiftData)
   ├── SKAnalytics (CompositeAnalytics, SuperProperty, PrintAnalytics)
+  ├── SKAuth (FirebaseAuthAdapter, SignInWithAppleNonce — links FirebaseAuth)
   └── SKInfraTesting (MockClock, MockLogger, MockDependencyContainer, …)
                         ↑
                         link only from test targets
 ```
 
 All products depend only on SKCore. No cross-dependencies between SKDI,
-SKNavigation, SKStorage, SKAnalytics, and SKInfraTesting.
+SKNavigation, SKStorage, SKAnalytics, SKAuth, and SKInfraTesting.
 
 ## Consumer Usage
 
@@ -52,7 +57,8 @@ targets: [
         .product(name: "SKDI", package: "SKInfra"),
         .product(name: "SKNavigation", package: "SKInfra"),
         .product(name: "SKStorage", package: "SKInfra"),
-        .product(name: "SKAnalytics", package: "SKInfra")
+        .product(name: "SKAnalytics", package: "SKInfra"),
+        .product(name: "SKAuth", package: "SKInfra")
     ])
 ]
 ```
@@ -88,6 +94,7 @@ baseline context light.
 | SKNavigation | [`Sources/SKNavigation/CLAUDE.md`](Sources/SKNavigation/CLAUDE.md) |
 | SKStorage | [`Sources/SKStorage/CLAUDE.md`](Sources/SKStorage/CLAUDE.md) |
 | SKAnalytics | [`Sources/SKAnalytics/CLAUDE.md`](Sources/SKAnalytics/CLAUDE.md) |
+| SKAuth | [`Sources/SKAuth/CLAUDE.md`](Sources/SKAuth/CLAUDE.md) |
 | SKInfraTesting | [`Sources/SKInfraTesting/CLAUDE.md`](Sources/SKInfraTesting/CLAUDE.md) |
 
 Type signatures, doc-comments, and usage examples live in the source

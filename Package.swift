@@ -26,11 +26,15 @@ let package = Package(
         .library(name: "SKNavigation", targets: ["SKNavigation"]),
         .library(name: "SKStorage", targets: ["SKStorage"]),
         .library(name: "SKAnalytics", targets: ["SKAnalytics"]),
+        .library(name: "SKAuth", targets: ["SKAuth"]),
         .library(name: "SKInfraTesting", targets: ["SKInfraTesting"])
     ],
     dependencies: [
         // Build-time only — does not link into consumers' binaries.
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.57.0")
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.57.0"),
+        // Runtime — linked only by the SKAuth product. Consumers that
+        // don't depend on SKAuth get no Firebase in their binary.
+        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "11.0.0")
     ],
     targets: [
         // MARK: - SKCore
@@ -99,6 +103,23 @@ let package = Package(
             name: "SKAnalyticsTests",
             dependencies: ["SKAnalytics", "SKInfraTesting"],
             path: "Tests/SKAnalyticsTests",
+            plugins: lintPlugins
+        ),
+
+        // MARK: - SKAuth
+        .target(
+            name: "SKAuth",
+            dependencies: [
+                "SKCore",
+                .product(name: "FirebaseAuth", package: "firebase-ios-sdk")
+            ],
+            path: "Sources/SKAuth",
+            plugins: lintPlugins
+        ),
+        .testTarget(
+            name: "SKAuthTests",
+            dependencies: ["SKAuth", "SKInfraTesting"],
+            path: "Tests/SKAuthTests",
             plugins: lintPlugins
         ),
 
