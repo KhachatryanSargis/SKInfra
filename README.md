@@ -330,7 +330,9 @@ SKInfra/
 
 ## Dependencies
 
-None. SKInfra has zero external dependencies.
+**Zero runtime dependencies.** Nothing SKInfra ships links against any third-party code, so consuming apps inherit no transitive runtime libraries.
+
+The package does declare one **build-time only** plugin dependency, [SwiftLintPlugins](https://github.com/SimplyDanny/SwiftLintPlugins), which attaches `SwiftLintBuildToolPlugin` to every target. It runs `swiftlint` on every `swift build` and surfaces violations as Xcode warnings — the in-editor feedback loop that mirrors what CI checks with `--strict`. It is not linked into the compiled binary and has no runtime cost; it shows up in consumers' `Package.resolved` purely as a resolved-plugin entry.
 
 ---
 

@@ -64,6 +64,16 @@ swift build
 swift test
 ```
 
+## Linting
+
+SwiftLint runs automatically via `SwiftLintBuildToolPlugin` on every
+`swift build`. Violations appear as warnings in Xcode and the terminal.
+CI runs an additional `swiftlint --strict` job as the hard gate.
+
+The plugin is declared as a build-time only dependency on
+[SwiftLintPlugins](https://github.com/SimplyDanny/SwiftLintPlugins);
+it does not propagate to consumers' runtime binaries.
+
 <!-- PUBLIC-API-START -->
 ## Public API Reference — SKCore
 

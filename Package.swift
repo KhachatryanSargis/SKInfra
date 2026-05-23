@@ -2,6 +2,18 @@
 
 import PackageDescription
 
+// MARK: - Lint Plugin
+//
+// SwiftLintBuildToolPlugin runs on every `swift build` and surfaces
+// violations as compiler warnings — visible directly in Xcode and in
+// the terminal. CI uses a dedicated `swiftlint --strict` job for the
+// hard gate; this plugin is the in-editor feedback loop.
+//
+// Attached to every target via the helper below.
+let lintPlugins: [Target.PluginUsage] = [
+    .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+]
+
 let package = Package(
     name: "SKInfra",
     platforms: [
@@ -16,76 +28,92 @@ let package = Package(
         .library(name: "SKAnalytics", targets: ["SKAnalytics"]),
         .library(name: "SKInfraTesting", targets: ["SKInfraTesting"])
     ],
+    dependencies: [
+        // Build-time only — does not link into consumers' binaries.
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.57.0")
+    ],
     targets: [
         // MARK: - SKCore
         .target(
             name: "SKCore",
-            path: "Sources/SKCore"
+            path: "Sources/SKCore",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKCoreTests",
             dependencies: ["SKCore", "SKInfraTesting"],
-            path: "Tests/SKCoreTests"
+            path: "Tests/SKCoreTests",
+            plugins: lintPlugins
         ),
 
         // MARK: - SKDI
         .target(
             name: "SKDI",
             dependencies: ["SKCore"],
-            path: "Sources/SKDI"
+            path: "Sources/SKDI",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKDITests",
             dependencies: ["SKDI", "SKInfraTesting"],
-            path: "Tests/SKDITests"
+            path: "Tests/SKDITests",
+            plugins: lintPlugins
         ),
 
         // MARK: - SKNavigation
         .target(
             name: "SKNavigation",
             dependencies: ["SKCore"],
-            path: "Sources/SKNavigation"
+            path: "Sources/SKNavigation",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKNavigationTests",
             dependencies: ["SKNavigation", "SKInfraTesting"],
-            path: "Tests/SKNavigationTests"
+            path: "Tests/SKNavigationTests",
+            plugins: lintPlugins
         ),
 
         // MARK: - SKStorage
         .target(
             name: "SKStorage",
             dependencies: ["SKCore"],
-            path: "Sources/SKStorage"
+            path: "Sources/SKStorage",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKStorageTests",
             dependencies: ["SKStorage", "SKInfraTesting"],
-            path: "Tests/SKStorageTests"
+            path: "Tests/SKStorageTests",
+            plugins: lintPlugins
         ),
 
         // MARK: - SKAnalytics
         .target(
             name: "SKAnalytics",
             dependencies: ["SKCore"],
-            path: "Sources/SKAnalytics"
+            path: "Sources/SKAnalytics",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKAnalyticsTests",
             dependencies: ["SKAnalytics", "SKInfraTesting"],
-            path: "Tests/SKAnalyticsTests"
+            path: "Tests/SKAnalyticsTests",
+            plugins: lintPlugins
         ),
 
         // MARK: - SKInfraTesting
         .target(
             name: "SKInfraTesting",
             dependencies: ["SKCore"],
-            path: "Sources/SKInfraTesting"
+            path: "Sources/SKInfraTesting",
+            plugins: lintPlugins
         ),
         .testTarget(
             name: "SKInfraTestingTests",
             dependencies: ["SKInfraTesting"],
-            path: "Tests/SKInfraTestingTests"
+            path: "Tests/SKInfraTestingTests",
+            plugins: lintPlugins
         )
     ]
 )
