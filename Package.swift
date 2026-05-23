@@ -24,7 +24,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SKCoreTests",
-            dependencies: ["SKCore"],
+            dependencies: ["SKCore", "SKInfraTesting"],
             path: "Tests/SKCoreTests"
         ),
 
@@ -36,7 +36,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SKDITests",
-            dependencies: ["SKDI"],
+            dependencies: ["SKDI", "SKInfraTesting"],
             path: "Tests/SKDITests"
         ),
 
@@ -48,7 +48,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SKNavigationTests",
-            dependencies: ["SKNavigation"],
+            dependencies: ["SKNavigation", "SKInfraTesting"],
             path: "Tests/SKNavigationTests"
         ),
 
@@ -60,7 +60,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SKStorageTests",
-            dependencies: ["SKStorage"],
+            dependencies: ["SKStorage", "SKInfraTesting"],
             path: "Tests/SKStorageTests"
         ),
 
@@ -72,7 +72,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SKAnalyticsTests",
-            dependencies: ["SKAnalytics"],
+            dependencies: ["SKAnalytics", "SKInfraTesting"],
             path: "Tests/SKAnalyticsTests"
         ),
 

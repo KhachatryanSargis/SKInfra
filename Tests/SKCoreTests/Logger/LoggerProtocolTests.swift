@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 @testable import SKCore
+import SKInfraTesting
 
 @Suite("LoggerProtocol — Default Implementations")
 struct LoggerProtocolTests {

@@ -1,5 +1,6 @@
 import Testing
 @testable import SKCore
+import SKInfraTesting
 
 // MARK: - Test Doubles
 

@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 @testable import SKCore
+import SKInfraTesting
 
 @Suite("KeychainStorage")
 struct KeychainStorageTests {

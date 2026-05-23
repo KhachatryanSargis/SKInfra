@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import SKCore
 @testable import SKAnalytics
+import SKInfraTesting
 
 @Suite("CompositeAnalyticsProvider")
 struct CompositeAnalyticsProviderTests {

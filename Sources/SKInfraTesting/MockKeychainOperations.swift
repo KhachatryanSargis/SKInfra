@@ -1,37 +1,48 @@
 import Foundation
-@testable import SKCore
+import SKCore
 
-/// In-memory mock for keychain operations.
+// MARK: - Mock Keychain Operations
+
+/// In-memory test double for ``KeychainOperations``.
 ///
-/// Stores data in a dictionary instead of the real keychain,
-/// enabling fast, isolated, and deterministic tests.
+/// Stores data in a dictionary instead of the real keychain, enabling
+/// fast, isolated, and deterministic tests of code built on top of
+/// ``KeychainStorage``.
 ///
-/// - Note: `@unchecked Sendable` is safe here because this type is only used
-///   in `@MainActor`-isolated test suites where access is serialized.
-///   Do not use this mock from concurrent contexts without adding synchronization.
-final class MockKeychainOperations: KeychainOperations, @unchecked Sendable {
+/// ## Thread Safety
+///
+/// `@unchecked Sendable` — this mock is intended for single-test use where
+/// access is naturally serialized. Do not share an instance across
+/// concurrent tasks without adding synchronization.
+public final class MockKeychainOperations: KeychainOperations, @unchecked Sendable {
+
     // MARK: - State
 
     private var store: [String: Data] = [:]
 
-    /// Tracks the number of add calls for verification.
-    private(set) var addCallCount = 0
+    /// Tracks the number of `add` calls for verification.
+    public private(set) var addCallCount = 0
 
-    /// Tracks the number of delete calls for verification.
-    private(set) var deleteCallCount = 0
+    /// Tracks the number of `delete` calls for verification.
+    public private(set) var deleteCallCount = 0
 
-    /// When set, `add` will return this status instead of succeeding.
-    var addOverrideStatus: OSStatus?
+    /// When set, ``add(_:)`` will return this status instead of succeeding.
+    public var addOverrideStatus: OSStatus?
 
-    /// When set, `copyMatching` will return this status instead of succeeding.
-    var copyOverrideStatus: OSStatus?
+    /// When set, ``copyMatching(_:_:)`` will return this status instead of
+    /// succeeding.
+    public var copyOverrideStatus: OSStatus?
 
-    /// When set, `delete` will return this status instead of succeeding.
-    var deleteOverrideStatus: OSStatus?
+    /// When set, ``delete(_:)`` will return this status instead of
+    /// succeeding.
+    public var deleteOverrideStatus: OSStatus?
+
+    /// Creates an empty mock keychain.
+    public init() {}
 
     // MARK: - KeychainOperations
 
-    func add(_ query: CFDictionary) -> OSStatus {
+    public func add(_ query: CFDictionary) -> OSStatus {
         addCallCount += 1
 
         if let override = addOverrideStatus {
@@ -48,7 +59,7 @@ final class MockKeychainOperations: KeychainOperations, @unchecked Sendable {
         return errSecSuccess
     }
 
-    func copyMatching(
+    public func copyMatching(
         _ query: CFDictionary,
         _ result: UnsafeMutablePointer<CFTypeRef?>?
     ) -> OSStatus {
@@ -69,7 +80,7 @@ final class MockKeychainOperations: KeychainOperations, @unchecked Sendable {
         return errSecSuccess
     }
 
-    func delete(_ query: CFDictionary) -> OSStatus {
+    public func delete(_ query: CFDictionary) -> OSStatus {
         deleteCallCount += 1
 
         if let override = deleteOverrideStatus {
@@ -89,8 +100,8 @@ final class MockKeychainOperations: KeychainOperations, @unchecked Sendable {
 
     // MARK: - Test Helpers
 
-    /// Resets all state for a clean test.
-    func reset() {
+    /// Resets all stored data and call counts for a clean test.
+    public func reset() {
         store.removeAll()
         addCallCount = 0
         deleteCallCount = 0
